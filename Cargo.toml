@@ -1,0 +1,31 @@
+[package]
+name = "platform"
+version = "0.1.0"
+authors = ["Matt Cook <hello@mattcook.dev>"]
+edition = "2021"
+description = "Course platform"
+readme = "README.md"
+repository = "https://github.com/sciencefidelity/platform"
+license = "MIT or Apache-2.0"
+exclude = ["./scripts"]
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+enum_glob_use = "deny"
+pedantic = { level = "deny", priority = 1 }
+nursery = { level = "deny", priority = 2 }
+unwrap_used = "deny"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[workspace]
+members = ["tutor-nodb"]
+
+[dependencies]
