@@ -1,25 +1,28 @@
 use crate::models::Course;
-use crate::state::AppState;
+use crate::state;
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
+use std::sync::atomic::Ordering;
 
-pub async fn health_check_handler(app_state: web::Data<AppState>) -> HttpResponse {
+pub async fn health_check_handler(app_state: web::Data<state::App>) -> HttpResponse {
     let health_check_response = &app_state.health_check_response;
-    let mut visit_count = app_state.visit_count.lock().unwrap();
-    let response = format!("{health_check_response} {visit_count} times");
-    *visit_count += 1;
+    let visit_count = app_state.visit_count.fetch_add(1, Ordering::SeqCst);
+    let response = format!("{health_check_response} {visit_count} times",);
     HttpResponse::Ok().json(&response)
 }
 
+/// # Panics
+///
+/// Will panic if `courses` fails to lock.
 pub async fn new_course(
     new_course: web::Json<Course>,
-    app_state: web::Data<AppState>,
+    app_state: web::Data<state::App>,
 ) -> HttpResponse {
     println!("Received new course");
     let course_count_for_user = app_state
         .courses
         .lock()
-        .unwrap()
+        .expect("failed to lock")
         .clone()
         .into_iter()
         .filter(|course| course.tutor_id == new_course.tutor_id)
@@ -30,33 +33,42 @@ pub async fn new_course(
         course_name: new_course.course_name.clone(),
         posted_time: Some(Utc::now().naive_utc()),
     };
-    app_state.courses.lock().unwrap().push(new_course);
+    app_state
+        .courses
+        .lock()
+        .expect("failed to lock")
+        .push(new_course);
     HttpResponse::Ok().json("Added course")
 }
 
+/// # Panics
+///
+/// Will panic if `courses` fails to lock.
 pub async fn get_courses_for_tutor(
-    app_state: web::Data<AppState>,
+    app_state: web::Data<state::App>,
     params: web::Path<i32>,
 ) -> HttpResponse {
     let tutor_id = params.into_inner();
-
     let filtered_courses = app_state
         .courses
         .lock()
-        .unwrap()
+        .expect("failed to lock")
         .clone()
         .into_iter()
         .filter(|course| course.tutor_id == tutor_id)
         .collect::<Vec<Course>>();
-    if filtered_courses.len() > 0 {
-        HttpResponse::Ok().json(filtered_courses)
-    } else {
+    if filtered_courses.is_empty() {
         HttpResponse::Ok().json("No courses found for tutor".to_owned())
+    } else {
+        HttpResponse::Ok().json(filtered_courses)
     }
 }
 
+/// # Panics
+///
+/// Will panic if `courses` fails to lock.
 pub async fn get_course_detail(
-    app_state: web::Data<AppState>,
+    app_state: web::Data<state::App>,
     params: web::Path<(i32, usize)>,
 ) -> HttpResponse {
     let (tutor_id, course_id) = params.into_inner();
@@ -64,24 +76,23 @@ pub async fn get_course_detail(
     let selected_course = app_state
         .courses
         .lock()
-        .unwrap()
+        .expect("failed to lock")
         .clone()
         .into_iter()
         .find(|x| x.tutor_id == tutor_id && x.course_id == Some(course_id))
         .ok_or("Course not found");
 
-    if let Ok(course) = selected_course {
-        HttpResponse::Ok().json(course)
-    } else {
-        HttpResponse::Ok().json("Course not found".to_owned())
-    }
+    selected_course.map_or_else(
+        |_| HttpResponse::Ok().json("Course not found".to_owned()),
+        |course| HttpResponse::Ok().json(course),
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use actix_web::http::StatusCode;
-    use std::sync::Mutex;
+    use std::sync::{atomic::AtomicU32, Mutex};
 
     #[actix_rt::test]
     async fn post_course_test() {
@@ -91,9 +102,9 @@ mod tests {
             course_id: None,
             posted_time: None,
         });
-        let app_state: web::Data<AppState> = web::Data::new(AppState {
-            health_check_response: "".to_string(),
-            visit_count: Mutex::new(0),
+        let app_state: web::Data<state::App> = web::Data::new(state::App {
+            health_check_response: String::new(),
+            visit_count: AtomicU32::new(0),
             courses: Mutex::new(vec![]),
         });
         let resp = new_course(course, app_state).await;
@@ -102,9 +113,9 @@ mod tests {
 
     #[actix_rt::test]
     async fn get_all_courses_success() {
-        let app_state: web::Data<AppState> = web::Data::new(AppState {
-            health_check_response: "".to_owned(),
-            visit_count: Mutex::new(0),
+        let app_state: web::Data<state::App> = web::Data::new(state::App {
+            health_check_response: String::new(),
+            visit_count: AtomicU32::new(0),
             courses: Mutex::new(vec![]),
         });
         let tutor_id: web::Path<i32> = web::Path::from(1);
@@ -114,9 +125,9 @@ mod tests {
 
     #[actix_rt::test]
     async fn get_one_course_success() {
-        let app_state: web::Data<AppState> = web::Data::new(AppState {
-            health_check_response: "".to_owned(),
-            visit_count: Mutex::new(0),
+        let app_state: web::Data<state::App> = web::Data::new(state::App {
+            health_check_response: String::new(),
+            visit_count: AtomicU32::new(0),
             courses: Mutex::new(vec![]),
         });
 

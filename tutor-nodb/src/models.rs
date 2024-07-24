@@ -10,9 +10,9 @@ pub struct Course {
     pub posted_time: Option<NaiveDateTime>,
 }
 
-impl From<web::Json<Course>> for Course {
-    fn from(course: web::Json<Course>) -> Self {
-        Course {
+impl From<web::Json<Self>> for Course {
+    fn from(course: web::Json<Self>) -> Self {
+        Self {
             tutor_id: course.tutor_id,
             course_id: course.course_id,
             course_name: course.course_name.clone(),
