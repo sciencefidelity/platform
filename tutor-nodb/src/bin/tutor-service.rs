@@ -19,5 +19,5 @@ async fn main() -> io::Result<()> {
             .configure(routes::general)
             .configure(routes::course)
     };
-    HttpServer::new(app).bind("127.0.0.1:3000")?.run().await
+    HttpServer::new(app).bind("0.0.0.0:3000")?.run().await
 }

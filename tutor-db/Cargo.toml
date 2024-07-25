@@ -3,4 +3,39 @@ name = "tutor-db"
 version = "0.1.0"
 edition = "2021"
 
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+enum_glob_use = "deny"
+pedantic = { level = "deny", priority = 1 }
+nursery = { level = "deny", priority = 2 }
+unwrap_used = "deny"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[[bin]]
+name = "iter1"
+
 [dependencies]
+actix-web = "4"
+actix-rt = "2"
+chrono = { version = "0.4.22", default-features = false, features = ["serde"] }
+dotenv = "0.15.0"
+serde = { version = "1", features = ["derive"] }
+openssl = { version = "0.10.32", features = ["vendored"] }
+
+[dependencies.sqlx]
+version = "0.7"
+features = [
+  "chrono",
+  "macros",
+  "postgres",
+  "runtime-tokio",
+  "tls-native-tls"
+]

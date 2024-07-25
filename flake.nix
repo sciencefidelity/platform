@@ -20,6 +20,9 @@
         devShells.default = mkShell {
           buildInputs = [
             pkg-config
+            postgresql
+            sqlx-cli
+            openssl_3_3
             (rust-bin.stable.latest.default.override {
               extensions = [ "rust-analyzer" "rust-src" ];
             })
