@@ -3,7 +3,7 @@ use crate::state;
 use actix_web::{web, HttpResponse};
 use std::sync::atomic::Ordering;
 
-pub async fn health_check_handler(app_state: web::Data<state::App>) -> HttpResponse {
+pub async fn health_check(app_state: web::Data<state::App>) -> HttpResponse {
     let health_check_response = &app_state.health_check_response;
     let visit_count = app_state.visit_count.fetch_add(1, Ordering::SeqCst);
     let response = format!("{health_check_response} {visit_count} times",);
