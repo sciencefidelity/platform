@@ -1,5 +1,5 @@
 [package]
-name = "tutor-db"
+name = "tutor"
 version = "0.1.0"
 edition = "2021"
 
@@ -20,7 +20,7 @@ panic = "abort"
 strip = "symbols"
 
 [[bin]]
-name = "iter1"
+name = "tutor-service"
 
 [dependencies]
 actix-web = "4"

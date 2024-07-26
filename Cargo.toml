@@ -26,6 +26,6 @@ panic = "abort"
 strip = "symbols"
 
 [workspace]
-members = ["tutor-db", "tutor-nodb"]
+members = ["tutor"]
 
 [dependencies]
