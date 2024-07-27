@@ -13,7 +13,7 @@ async fn main() -> io::Result<()> {
         .await
         .expect("failed to connect to db");
     let shared_data = web::Data::new(state::App {
-        health_check_response: "I'm good. You've already asked me ".to_owned(),
+        health_check_response: "I'm good. You've already asked me".to_owned(),
         visit_count: AtomicU32::new(0),
         db: db_pool,
     });

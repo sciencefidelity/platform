@@ -1,5 +1,5 @@
-use crate::models::Course;
 use crate::state;
+use crate::{db, models::Course};
 use actix_web::{web, HttpResponse};
 use std::sync::atomic::Ordering;
 
@@ -14,30 +14,35 @@ pub async fn health_check(app_state: web::Data<state::App>) -> HttpResponse {
 ///
 /// Will panic if `courses` fails to lock.
 pub async fn get_courses_for_tutor(
-    _app_state: web::Data<state::App>,
-    _params: web::Path<i32>,
+    app_state: web::Data<state::App>,
+    params: web::Path<i32>,
 ) -> HttpResponse {
-    HttpResponse::Ok().json("success")
+    let tutor_id = params.into_inner();
+    let courses = db::get_courses_for_tutor(&app_state.db, tutor_id).await;
+    HttpResponse::Ok().json(courses)
 }
 
 /// # Panics
 ///
 /// Will panic if `courses` fails to lock.
 pub async fn get_course_details(
-    _app_state: web::Data<state::App>,
-    _params: web::Path<(i32, usize)>,
+    app_state: web::Data<state::App>,
+    params: web::Path<(i32, i32)>,
 ) -> HttpResponse {
-    HttpResponse::Ok().json("success")
+    let (tutor_id, course_id) = params.into_inner();
+    let course = db::get_course_details(&app_state.db, tutor_id, course_id).await;
+    HttpResponse::Ok().json(course)
 }
 
 /// # Panics
 ///
 /// Will panic if `courses` fails to lock.
 pub async fn post_new_course(
-    _app_state: web::Data<state::App>,
-    _new_course: web::Json<Course>,
+    app_state: web::Data<state::App>,
+    new_course: web::Json<Course>,
 ) -> HttpResponse {
-    HttpResponse::Ok().json("success")
+    let course = db::post_new_course(&app_state.db, new_course.into()).await;
+    HttpResponse::Ok().json(course)
 }
 
 #[cfg(test)]
@@ -75,7 +80,7 @@ mod tests {
             visit_count: AtomicU32::new(0),
             db: pool,
         });
-        let params: web::Path<(i32, usize)> = web::Path::from((1, 2));
+        let params: web::Path<(i32, i32)> = web::Path::from((1, 2));
         let resp = get_course_details(app_state, params).await;
         assert_eq!(resp.status(), StatusCode::OK);
     }
@@ -91,7 +96,7 @@ mod tests {
             db: pool,
         });
         let new_course_msg = Course {
-            course_id: 1,
+            course_id: 3,
             tutor_id: 1,
             course_name: "This is the next course".to_owned(),
             posted_time: Some(
