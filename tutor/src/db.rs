@@ -1,19 +1,23 @@
-use crate::models::Course;
+use crate::{errors::TutorError, models::Course};
 use sqlx::postgres::PgPool;
 
-/// # Panics
+// TODO: figure out why `tutor_id` can panic.
+/// # Errors
 ///
-/// Will panic if db query fails.
-pub async fn get_courses_for_tutor(pool: &PgPool, tutor_id: i32) -> Vec<Course> {
+/// Will return `Err` if course is not found in db.
+#[allow(clippy::missing_panics_doc)]
+pub async fn get_courses_for_tutor(
+    pool: &PgPool,
+    tutor_id: i32,
+) -> Result<Vec<Course>, TutorError> {
     let course_rows = sqlx::query!(
         "SELECT tutor_id, course_id, course_name, posted_time FROM course where tutor_id = $1",
         tutor_id
     )
     .fetch_all(pool)
-    .await
-    .expect("db query failed");
+    .await?;
 
-    course_rows
+    let courses: Vec<Course> = course_rows
         .iter()
         .map(|course_row| Course {
             course_id: course_row.course_id,
@@ -21,32 +25,50 @@ pub async fn get_courses_for_tutor(pool: &PgPool, tutor_id: i32) -> Vec<Course> 
             course_name: course_row.course_name.clone(),
             posted_time: course_row.posted_time,
         })
-        .collect()
+        .collect();
+
+    match courses.len() {
+        0 => Err(TutorError::NotFound(
+            "Courses not found for tutor".to_owned(),
+        )),
+        _ => Ok(courses),
+    }
 }
 
-/// # Panics
+// TODO: figure out why `tutor_id` can panic.
+/// # Errors
 ///
-/// Will panic if db query fails.
-pub async fn get_course_details(pool: &PgPool, tutor_id: i32, course_id: i32) -> Course {
+/// Will return `Err` if course or tutor is not found in db.
+#[allow(clippy::missing_panics_doc)]
+pub async fn get_course_details(
+    pool: &PgPool,
+    tutor_id: i32,
+    course_id: i32,
+) -> Result<Course, TutorError> {
     let course_row = sqlx::query!(
         "SELECT tutor_id, course_id, course_name, posted_time FROM course where tutor_id = $1 and course_id = $2",
         tutor_id, course_id
     ).fetch_one(pool)
-        .await
-        .expect("db query failed");
+        .await;
 
-    Course {
-        course_id: course_row.course_id,
-        tutor_id: course_row.tutor_id,
-        course_name: course_row.course_name.clone(),
-        posted_time: course_row.posted_time,
+    if let Ok(course_row) = course_row {
+        Ok(Course {
+            course_id: course_row.course_id,
+            tutor_id: course_row.tutor_id,
+            course_name: course_row.course_name.clone(),
+            posted_time: course_row.posted_time,
+        })
+    } else {
+        Err(TutorError::NotFound("Course id not found".to_owned()))
     }
 }
 
-/// # Panics
+// TODO: figure out why `new_course` can panic.
+/// # Errors
 ///
-/// Will panic if db query fails.
-pub async fn post_new_course(pool: &PgPool, new_course: Course) -> Course {
+/// Will return `Err` if db fails to insert course.
+#[allow(clippy::missing_panics_doc)]
+pub async fn post_new_course(pool: &PgPool, new_course: Course) -> Result<Course, TutorError> {
     let course_row = sqlx::query!(
         "insert into course (course_id, tutor_id, course_name)
         values ($1, $2, $3) 
@@ -56,13 +78,12 @@ pub async fn post_new_course(pool: &PgPool, new_course: Course) -> Course {
         new_course.course_name
     )
     .fetch_one(pool)
-    .await
-    .expect("db query failed");
+    .await?;
 
-    Course {
+    Ok(Course {
         course_id: course_row.course_id,
         tutor_id: course_row.tutor_id,
         course_name: course_row.course_name.clone(),
         posted_time: course_row.posted_time,
-    }
+    })
 }

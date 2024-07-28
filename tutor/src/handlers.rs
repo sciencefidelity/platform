@@ -1,3 +1,4 @@
+use crate::errors::TutorError;
 use crate::state;
 use crate::{db, models::Course};
 use actix_web::{web, HttpResponse};
@@ -10,39 +11,42 @@ pub async fn health_check(app_state: web::Data<state::App>) -> HttpResponse {
     HttpResponse::Ok().json(&response)
 }
 
-/// # Panics
+/// # Errors
 ///
-/// Will panic if `courses` fails to lock.
+/// Will return `Err` if `tutor_id` is not found in db.
 pub async fn get_courses_for_tutor(
     app_state: web::Data<state::App>,
     params: web::Path<i32>,
-) -> HttpResponse {
+) -> Result<HttpResponse, TutorError> {
     let tutor_id = params.into_inner();
-    let courses = db::get_courses_for_tutor(&app_state.db, tutor_id).await;
-    HttpResponse::Ok().json(courses)
+    db::get_courses_for_tutor(&app_state.db, tutor_id)
+        .await
+        .map(|courses| HttpResponse::Ok().json(courses))
 }
 
-/// # Panics
+/// # Errors
 ///
-/// Will panic if `courses` fails to lock.
+/// Will return `Err` if `tutor_id` or `course_id` is not found in db.
 pub async fn get_course_details(
     app_state: web::Data<state::App>,
     params: web::Path<(i32, i32)>,
-) -> HttpResponse {
+) -> Result<HttpResponse, TutorError> {
     let (tutor_id, course_id) = params.into_inner();
-    let course = db::get_course_details(&app_state.db, tutor_id, course_id).await;
-    HttpResponse::Ok().json(course)
+    db::get_course_details(&app_state.db, tutor_id, course_id)
+        .await
+        .map(|course| HttpResponse::Ok().json(course))
 }
 
-/// # Panics
+/// # Errors
 ///
-/// Will panic if `courses` fails to lock.
+/// Will return `Err` if `new_course` cannot be inserted into db.
 pub async fn post_new_course(
     app_state: web::Data<state::App>,
     new_course: web::Json<Course>,
-) -> HttpResponse {
-    let course = db::post_new_course(&app_state.db, new_course.into()).await;
-    HttpResponse::Ok().json(course)
+) -> Result<HttpResponse, TutorError> {
+    db::post_new_course(&app_state.db, new_course.into())
+        .await
+        .map(|course| HttpResponse::Ok().json(course))
 }
 
 #[cfg(test)]
@@ -66,7 +70,7 @@ mod tests {
             db: pool,
         });
         let tutor_id: web::Path<i32> = web::Path::from(1);
-        let resp = get_courses_for_tutor(app_state, tutor_id).await;
+        let resp = get_courses_for_tutor(app_state, tutor_id).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
     }
 
@@ -81,7 +85,7 @@ mod tests {
             db: pool,
         });
         let params: web::Path<(i32, i32)> = web::Path::from((1, 2));
-        let resp = get_course_details(app_state, params).await;
+        let resp = get_course_details(app_state, params).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
     }
 
@@ -107,7 +111,7 @@ mod tests {
             ),
         };
         let course_param = web::Json(new_course_msg);
-        let resp = post_new_course(app_state, course_param).await;
+        let resp = post_new_course(app_state, course_param).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
     }
 }

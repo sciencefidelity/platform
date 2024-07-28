@@ -24,5 +24,10 @@ async fn main() -> io::Result<()> {
             .configure(routes::course)
     };
 
-    HttpServer::new(app).bind("0.0.0.0:3000")?.run().await
+    let app_host = env::var("APP_HOST").expect("APP_HOST is not set in .env file");
+    let app_port: u16 = env::var("APP_PORT")
+        .expect("APP_PORT is not set in .env file")
+        .parse()
+        .expect("APP_PORT is not valid u16");
+    HttpServer::new(app).bind((app_host, app_port))?.run().await
 }
