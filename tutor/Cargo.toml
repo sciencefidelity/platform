@@ -32,10 +32,4 @@ openssl = { version = "0.10.32", features = ["vendored"] }
 
 [dependencies.sqlx]
 version = "0.7"
-features = [
-  "chrono",
-  "macros",
-  "postgres",
-  "runtime-tokio",
-  "tls-native-tls"
-]
+features = ["chrono", "macros", "postgres", "runtime-tokio", "tls-native-tls"]

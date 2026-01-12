@@ -7,7 +7,7 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, rust-overlay, flake-utils, ... }:
+  outputs = { nixpkgs, rust-overlay, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         overlays = [ (import rust-overlay) ];
@@ -19,10 +19,12 @@
       {
         devShells.default = mkShell {
           buildInputs = [
+            openssl
             pkg-config
             postgresql
             sqlx-cli
-            openssl_3_3
+            sqruff
+            taplo
             (rust-bin.stable.latest.default.override {
               extensions = [ "rust-analyzer" "rust-src" ];
             })

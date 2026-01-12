@@ -1,1 +1,1 @@
-delete from course where course_id=3;
+DELETE FROM course WHERE course_id = 3;

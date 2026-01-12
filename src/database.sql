@@ -1,14 +1,14 @@
-drop table if exists course;
-create table course
+DROP TABLE IF EXISTS course;
+CREATE TABLE course
 (
-  course_id serial primary key,
-  tutor_id INT not null,
-  course_name varchar(140) not null,
-  posted_time TIMESTAMP default now()
+    course_id SERIAL PRIMARY KEY,
+    tutor_id INT NOT NULL,
+    course_name VARCHAR(140) NOT NULL,
+    posted_time TIMESTAMP DEFAULT NOW()
 );
 
 /* Load seed data for testing */
-insert into course (course_id, tutor_id, course_name, posted_time)
-values (1, 1, 'First course', '2024-07-17 05:40:00');
-insert into course (course_id, tutor_id, course_name, posted_time)
-values (2, 1, 'Second course', '2024-07-18 05:45:00');
+INSERT INTO course (course_id, tutor_id, course_name, posted_time)
+VALUES (1, 1, 'First course', '2024-07-17 05:40:00');
+INSERT INTO course (course_id, tutor_id, course_name, posted_time)
+VALUES (2, 1, 'Second course', '2024-07-18 05:45:00');
